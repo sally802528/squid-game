@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魷魚遊戲生存格 - 顯示端</title>
+    <style>
+        /* CSS 樣式放在這裡，請看下一段 */
+        body {
+            background-color: #0d0d0d; /* 深色空間 */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* 防止滾動條 */
+        }
+
+        .floor-container {
+            /* 設置透視，模擬 3D 深度 */
+            perspective: 1200px; 
+            perspective-origin: center -200px;
+        }
+
+        .floor-grid {
+            display: grid;
+            /* 設置網格大小，這裡用 4x4 */
+            grid-template-columns: repeat(4, 150px); 
+            grid-template-rows: repeat(4, 150px);
+            gap: 20px;
+
+            /* 關鍵的 3D 轉換 */
+            transform-style: preserve-3d;
+            transform: rotateX(65deg) rotateZ(45deg); /* 傾斜與旋轉為菱形網格 */
+            
+            /* 稍微將網格推遠，以達到深邃感 */
+            transform: translateZ(-300px) rotateX(65deg) rotateZ(45deg); 
+            
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8); /* 網格周圍的微弱陰影 */
+        }
+
+        .player-cell {
+            width: 150px;
+            height: 150px;
+            background-color: rgba(20, 20, 20, 0.8); /* 熄滅時的深灰色地板 */
+            border: 1px solid #333;
+            
+            /* 3D 視覺優化 */
+            transform: scaleY(0.7); /* 壓縮以增加菱形的立體感 */
+            transition: all 0.5s ease;
+            cursor: pointer; /* 雖然是顯示端，但可以作為視覺回饋 */
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #444; /* 熄滅時的 ID 顏色 */
+        }
+
+        /* 生存狀態：持續亮起 */
+        .player-cell.alive {
+            background-color: rgba(0, 255, 0, 0.1);
+            color: #ccffcc;
+            /* 綠色發光效果：多層 box-shadow 營造光暈 */
+            box-shadow: 
+                0 0 5px #0f0,  /* 核心光 */
+                0 0 15px #0f0, /* 光暈 */
+                0 0 30px #0f0; /* 更大的光暈 */
+            border-color: #0f0;
+        }
+
+        /* 淘汰狀態：熄滅 */
+        .player-cell:not(.alive) {
+            box-shadow: none;
+            border-color: #333;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="floor-container">
+        <div class="floor-grid" id="display-grid">
+            </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // index.html 專屬邏輯
+
+        const displayGrid = document.getElementById('display-grid');
+
+        // 函數：根據狀態更新顯示端
+        function renderDisplayGrid(players) {
+            displayGrid.innerHTML = ''; // 清空現有格子
+            
+            players.forEach(player => {
+                const cell = document.createElement('div');
+                cell.className = 'player-cell';
+                cell.setAttribute('data-player-id', player.id);
+                cell.textContent = String(player.id).padStart(3, '0'); // 顯示玩家編號
+                
+                if (player.alive) {
+                    cell.classList.add('alive');
+                } else {
+                    cell.classList.remove('alive');
+                }
+                
+                displayGrid.appendChild(cell);
+            });
+        }
+
+        // 1. 初始化顯示
+        renderDisplayGrid(initializePlayers());
+
+        // 2. 輪詢機制：每秒檢查 localStorage 以同步狀態
+        function syncDisplayStatus() {
+            const players = getPlayersFromStorage();
+            renderDisplayGrid(players);
+        }
+
+        // 設置輪詢間隔 (例如：每 500 毫秒)
+        setInterval(syncDisplayStatus, 500); 
+
+        // 額外：如果控制端在同一個頁籤，可以監聽 storage 事件
+        window.addEventListener('storage', syncDisplayStatus); 
+        window.addEventListener('storageUpdate', syncDisplayStatus); // 監聽自定義事件
+
+    </script>
+</body>
+</html>
