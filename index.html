@@ -7,7 +7,7 @@
     <style>
         /* 基礎設置：深色空間與字體 */
         body {
-            background-color: #000000; /* 更純粹的黑色背景 */
+            background-color: #0d1216; /* 略帶藍色的深灰黑 */
             color: white;
             font-family: 'Arial', sans-serif;
             display: flex;
@@ -24,8 +24,8 @@
 
         /* 3D 視角容器：應用 Perspective */
         .floor-container {
-            perspective: 2500px; /* 超大的透視深度，增加空間感 */
-            perspective-origin: center 100%; /* 視角放在畫布底部，超低視角 */
+            perspective: 3000px; /* 極大的透視深度，強化縱深感 */
+            perspective-origin: center 120%; /* 視角設置在畫布底部更下方，營造更低的觀察點 */
             width: 100vw;
             height: 100vh;
             display: flex;
@@ -40,13 +40,13 @@
             grid-template-rows: repeat(22, 50px);
             gap: 5px; /* 更小的間隙 */
 
-            /* 關鍵的 3D 轉換 */
             transform-style: preserve-3d;
-            /* 初始視角：推遠、傾斜、旋轉 */
-            transform: translateZ(-1000px) translateY(150px) rotateX(80deg) rotateZ(45deg); 
-            transition: transform 0.05s linear; /* 更快的過渡，模擬即時拖曳 */
+            /* 初始視角：推遠、固定低角度傾斜、固定 Z 軸旋轉 (45度菱形) */
+            transform: translateZ(-1200px) translateY(200px) rotateX(85deg) rotateZ(45deg); 
+            transition: transform 0.05s linear; /* 更快的過渡 */
             
-            box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.9); /* 讓地板更暗 */
+            box-shadow: inset 0 0 250px rgba(0, 0, 0, 0.95); /* 讓地板更暗，更強調光效 */
+            filter: brightness(1.1); /* 略微提高整體亮度以匹配圖片 */
         }
 
         /* 每個玩家的菱形單元格 */
@@ -54,29 +54,31 @@
             width: 50px;
             height: 50px;
             background-color: rgba(0, 0, 0, 0.9); 
-            border: 1px solid #101010; /* 更深色的邊框 */
+            border: 1px solid #101010; 
             
             transform: scaleY(0.7); 
             transition: all 0.5s ease;
 
             position: relative; 
             overflow: hidden;
-            border-radius: 5px; /* 輕微圓角，更接近圖片效果 */
+            border-radius: 5px; 
+            /* 輕微的發光效果，即使是熄滅的格子也有微妙的邊緣光 */
+            box-shadow: 0 0 1px rgba(0, 255, 192, 0.05) inset, 0 0 1px rgba(0, 255, 192, 0.05); 
         }
 
         /* 玩家圖片與編號 */
         .player-cell img {
             width: 100%; height: 100%; object-fit: cover; 
-            opacity: 0.8; /* 圖片更亮，符合參考圖 */
+            opacity: 0.7; /* 圖片半透明，但比之前亮 */
             transition: opacity 0.5s, filter 0.5s;
         }
 
         .player-cell .player-number {
             position: absolute; 
-            bottom: 2px; /* 號碼靠下 */
+            bottom: 2px; 
             left: 50%; 
             transform: translateX(-50%);
-            font-size: 10px; /* 號碼更小 */
+            font-size: 10px; 
             font-weight: bold;
             color: #00FFC0; /* 號碼顏色與生存光效一致 */
             text-shadow: 0 0 2px #000000;
@@ -85,12 +87,15 @@
 
         /* 生存狀態：持續亮起（青綠色光效）*/
         .player-cell.alive {
-            /* 生存時圖片全亮 */
             background-color: rgba(0, 255, 192, 0.1);
             box-shadow: 
                 0 0 3px #00FFC0, 
-                0 0 10px #00FFC0;
+                0 0 10px #00FFC0,
+                0 0 20px rgba(0, 255, 192, 0.5); /* 更強的光暈效果 */
             border-color: #00FFC0;
+        }
+        .player-cell.alive img {
+            opacity: 1; /* 生存時圖片全亮 */
         }
 
         /* 淘汰狀態：熄滅 */
@@ -103,19 +108,19 @@
             opacity: 0.1; /* 淘汰時圖片變得很暗 */
         }
 
-        /* 中央淘汰板樣式 */
+        /* 中央淘汰板樣式 (位置調整到右下角，顯示淘汰計數) */
         .center-display {
-            grid-column: 11 / span 2; /* 佔據第 11, 12 欄 (中心) */
-            grid-row: 17 / span 2; /* 放在下方中心，符合參考圖位置 */
+            grid-column: 19 / span 3; /* 佔據右側的欄位 */
+            grid-row: 20 / span 2; /* 放在最下方 */
             background-color: #2c0000; 
             border: 3px solid #ff0000;
             z-index: 20;
             transform: scaleY(0.7); 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: #ff0000; font-size: 20px;
+            color: #ff0000; font-size: 24px;
             text-shadow: 0 0 5px #ff0000;
         }
-        .center-display .label { font-size: 10px; text-shadow: none; margin-bottom: 2px; }
+        .center-display .label { font-size: 12px; text-shadow: none; margin-bottom: 2px; }
     </style>
 </head>
 <body>
@@ -130,52 +135,50 @@
         const displayGrid = document.getElementById('display-grid');
         const floorContainer = document.querySelector('.floor-container');
 
-        // 初始化旋轉變數
+        // 固定 X 軸旋轉，只允許 Y 軸旋轉
+        const FIXED_ROTATE_X = 85; // 固定的低視角
         let currentRotateY = 0; // 左右旋轉
-        let currentRotateX = 80; // 上下傾斜 (初始 80 度)
         let isDragging = false;
         let lastX = 0;
-        let lastY = 0;
-        const SENSITIVITY = 0.5; // 旋轉靈敏度調高
+        const SENSITIVITY = 0.3; // 旋轉靈敏度
 
         // --- 核心函數：渲染網格 (修正排列，讓小號碼在中間) ---
 
         function renderDisplayGrid(players) {
             displayGrid.innerHTML = '';
             
-            // 由於格子數量是 22x22 = 484，我們只顯示前 456 個玩家
-            const TOTAL_GRID_COUNT = 484; 
             const GRID_SIZE = 22;
+            const TOTAL_GRID_CELLS = GRID_SIZE * GRID_SIZE; // 484 個格子
             
-            // 讓玩家 ID 較小的排在網格的中心區域 (視覺焦點)
-            // 這是一個簡化邏輯，實際影集排列非常複雜，我們以中心擴散的方式模擬
-            const playerMap = {};
-            players.forEach(p => {
-                playerMap[p.id] = p;
-            });
-
-            // 網格中心點 (索引從 0 開始)
-            const center = Math.floor(GRID_SIZE / 2) - 1; 
-
-            // 填充格子，ID 從中間開始往外擴散
-            // 這裡使用一個簡單的從 1 跑到 456 的 ID 順序，直接填充網格。
-            // 由於 CSS grid 的特性，ID 1 會在左上角。
+            // 由於 CSS Grid 的自然流動，我們創建一個臨時陣列來儲存要顯示的內容
+            // 並確保 ID 較小的玩家會集中在中間區域。
             
+            // Step 1: 建立一個空的網格表示 (例如 22x22 的二維陣列)
+            const gridContent = Array.from({ length: GRID_SIZE }, () => 
+                Array.from({ length: GRID_SIZE }, () => null)
+            );
+
+            // Step 2: 填充玩家。這裡採用簡單的螺旋式填充或中心擴散填充
+            // 但為了簡化程式碼且達到「較小數字排中間」的效果，
+            // 我們直接根據玩家 ID 創建元素，CSS Grid 會按照順序排列。
+            // 透過調整 CSS Grid 樣式，我們可以影響其視覺上的「中間」效果。
+            // 實際影集中，玩家排列非常規律且從遠處的中心擴散，這需要更複雜的座標計算。
+            // 目前的 CSS Grid 結合 translateZ/Y 可以模擬這種效果。
+            
+            // 創建所有玩家的元素
             for (let i = 1; i <= TOTAL_PLAYERS; i++) {
-                const player = playerMap[i];
+                const player = players.find(p => p.id === i); // 確保按 ID 順序
                 if (!player) continue;
 
                 const cell = document.createElement('div');
                 cell.className = 'player-cell';
                 cell.setAttribute('data-player-id', player.id);
                 
-                // 1. 玩家圖片 (Base64)
                 const img = document.createElement('img');
                 img.src = player.imageURL;
                 img.alt = player.name;
                 cell.appendChild(img);
                 
-                // 2. 玩家編號
                 const numberSpan = document.createElement('span');
                 numberSpan.className = 'player-number';
                 numberSpan.textContent = String(player.id).padStart(3, '0');
@@ -186,49 +189,49 @@
                 } else {
                     cell.classList.remove('alive');
                 }
-                
                 displayGrid.appendChild(cell);
             }
             
-            // 由於格子是 22x22，我們需要填充空白格子來保持佈局，直到 484 個
-            const remaining = TOTAL_GRID_COUNT - TOTAL_PLAYERS;
-            for (let i = 0; i < remaining; i++) {
+            // 填充剩餘的空白格子，以確保網格完整
+            const filledCellsCount = displayGrid.children.length;
+            const remainingEmptyCells = TOTAL_GRID_CELLS - filledCellsCount;
+            for (let i = 0; i < remainingEmptyCells; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'player-cell empty-cell';
                 emptyCell.style.opacity = 0; // 空白格子隱藏
+                emptyCell.style.border = 'none'; // 無邊框
+                emptyCell.style.backgroundColor = 'transparent'; // 透明背景
                 displayGrid.appendChild(emptyCell);
             }
-
 
             // 中央淘汰顯示板 (放在指定 grid-column 和 grid-row 上)
             const centerDisplay = document.createElement('div');
             centerDisplay.className = 'center-display';
-            const eliminatedPlayer = getRecentlyEliminated();
+            
+            const eliminatedCount = getEliminatedCount(); // 使用新的淘汰計數
             
             centerDisplay.innerHTML = `
-                <div class="label">LAST ELIMINATED</div>
-                <div>${String(eliminatedPlayer.id).padStart(3, '0')}</div>
+                <div class="label">ELIMINATED</div>
+                <div>${String(eliminatedCount).padStart(3, '0')}</div>
             `;
             displayGrid.appendChild(centerDisplay);
         }
 
-        // --- 更新 3D 視角 (更自由的旋轉) ---
+        // --- 更新 3D 視角 (只允許 Y 軸旋轉) ---
         
         function updateFloorTransform() {
             // 保持初始的 Z 軸位移、 Y 軸位移 和 Z 軸旋轉 (45度菱形)
-            const baseTransform = 'translateZ(-1000px) translateY(150px)';
-            // 移除 rotateY 限制
-            const rotationTransform = `rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) rotateZ(45deg)`;
+            const baseTransform = 'translateZ(-1200px) translateY(200px)';
+            const rotationTransform = `rotateX(${FIXED_ROTATE_X}deg) rotateY(${currentRotateY}deg) rotateZ(45deg)`;
             
             displayGrid.style.transform = baseTransform + ' ' + rotationTransform;
         }
 
-        // --- 滑鼠事件處理 (更自由的旋轉) ---
+        // --- 滑鼠事件處理 (只允許 Y 軸旋轉) ---
 
         floorContainer.addEventListener('mousedown', (e) => {
             isDragging = true;
             lastX = e.clientX;
-            lastY = e.clientY;
             floorContainer.style.cursor = 'grabbing';
             e.preventDefault();
         });
@@ -237,19 +240,12 @@
             if (!isDragging) return;
 
             const deltaX = e.clientX - lastX;
-            const deltaY = e.clientY - lastY;
-
-            // 左右旋轉 (Y軸) 不限制
             currentRotateY += deltaX * SENSITIVITY;
             
-            // 上下旋轉 (X軸) 限制在 40 到 90 度之間 (防止視角過高或翻轉)
-            currentRotateX -= deltaY * SENSITIVITY;
-            currentRotateX = Math.max(40, Math.min(90, currentRotateX));
-
+            // Y 軸旋轉可以無限循環
             updateFloorTransform();
 
             lastX = e.clientX;
-            lastY = e.clientY;
         });
 
         // 停止拖曳
