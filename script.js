@@ -1,12 +1,8 @@
-// script.js (重構版)
+// script.js (更新淘汰計數函數)
 
 const TOTAL_PLAYERS = 456;
 const STORAGE_KEY = 'squidGameStatus';
 
-/**
- * 預設的空白 Base64 圖片 (這裡使用一個極小的透明圖作為佔位符)
- * 實際部署時，建議用一張 1x1 像素的黑色 Base64 圖片來保持氛圍。
- */
 const DEFAULT_IMAGE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NkYGBgAAAABQAEAGBAAYnE8AAAAABJRU5ErkJggg==';
 
 /**
@@ -17,7 +13,6 @@ const DEFAULT_IMAGE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEA
 function initializePlayers() {
     const storedStatus = localStorage.getItem(STORAGE_KEY);
     if (storedStatus) {
-        // 確保載入的資料結構包含 imageURL，如果沒有則補上預設值
         const players = JSON.parse(storedStatus);
         return players.map(p => ({
             ...p,
@@ -31,7 +26,6 @@ function initializePlayers() {
             id: i,
             name: `Player ${String(i).padStart(3, '0')}`,
             alive: true,
-            // 初始使用空白圖片
             imageURL: DEFAULT_IMAGE_BASE64
         });
     }
@@ -66,15 +60,24 @@ function getPlayersFromStorage() {
 
 /**
  * 取得最近被淘汰的玩家資料，用於中央顯示板。
+ * (這個函數將被淘汰計數取代，但保留以防萬一需要最後淘汰者 ID)
  * @returns {Object} 最近淘汰的玩家資料或預設值
  */
 function getRecentlyEliminated() {
     const players = getPlayersFromStorage();
-    // 找到 ID 最大的且 alive: false 的玩家，模擬最近淘汰
     const eliminated = players
         .filter(p => !p.alive)
         .sort((a, b) => b.id - a.id)
         .shift();
         
     return eliminated || { id: '---', name: '全體生存' };
+}
+
+/**
+ * 計算當前淘汰的玩家數量。
+ * @returns {number} 淘汰玩家數量
+ */
+function getEliminatedCount() {
+    const players = getPlayersFromStorage();
+    return players.filter(p => !p.alive).length;
 }
