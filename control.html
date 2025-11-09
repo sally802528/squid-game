@@ -5,48 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>魷魚遊戲生存格 - 控制端</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            padding: 20px;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
         h1 { color: #2c3e50; }
-        .player-list-container {
-            max-height: 80vh;
-            overflow-y: auto;
-            padding-right: 15px;
-        }
+        .player-list-container { max-height: 80vh; overflow-y: auto; padding-right: 15px; }
         .player-item {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 50px 1fr 100px 100px; /* 圖片, 資訊, 狀態, 按鈕 */
+            gap: 10px;
             align-items: center;
-            padding: 10px;
-            margin-bottom: 8px;
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 10px; margin-bottom: 8px; background-color: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .player-info span { margin-right: 15px; font-weight: bold; }
-        .status-tag {
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 0.9em;
-            font-weight: bold;
-        }
+        .player-info { display: flex; flex-direction: column; }
+        .player-info span { font-weight: bold; }
+        .status-tag { padding: 4px 8px; border-radius: 3px; font-size: 0.9em; font-weight: bold; text-align: center;}
         .alive-status { background-color: #4CAF50; color: white; }
         .eliminated-status { background-color: #f44336; color: white; }
-        .action-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
+        .action-button { padding: 8px 10px; border: none; border-radius: 5px; color: white; cursor: pointer; transition: background-color 0.3s; width: 100%;}
         .eliminate-btn { background-color: #f44336; }
-        .eliminate-btn:hover { background-color: #d32f2f; }
         .revive-btn { background-color: #4CAF50; }
-        .revive-btn:hover { background-color: #388e3c; }
+        .player-image { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; }
+        .image-upload input { display: none; }
+        .upload-label { cursor: pointer; display: block; text-align: center; border: 1px dashed #ccc; padding: 5px 0; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -59,6 +38,33 @@
         // control.html 專屬邏輯
 
         const controlPanel = document.getElementById('control-panel');
+        const PLAYER_COUNT = 456;
+
+        // 函數：將圖片檔案轉換為 Base64 字串
+        function fileToBase64(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                callback(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 函數：處理圖片上傳
+        function handleImageUpload(playerId, file) {
+            if (!file) return;
+
+            fileToBase64(file, (base64String) => {
+                let players = getPlayersFromStorage();
+                const player = players.find(p => p.id === playerId);
+                
+                if (player) {
+                    player.imageURL = base64String;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+                    window.dispatchEvent(new Event('storageUpdate')); // 通知顯示端更新
+                    renderControlPanel(players); // 立即更新控制端
+                }
+            });
+        }
 
         // 函數：渲染控制端列表
         function renderControlPanel(players) {
@@ -68,31 +74,46 @@
                 const item = document.createElement('div');
                 item.className = 'player-item';
                 
-                // 玩家資訊
+                // 1. 圖片 (包含上傳功能)
+                const imageContainer = document.createElement('div');
+                imageContainer.className = 'image-upload';
+                imageContainer.innerHTML = `
+                    <img src="${player.imageURL}" class="player-image" alt="Player Image">
+                    <label for="file-upload-${player.id}" class="upload-label">
+                        ${player.imageURL === DEFAULT_IMAGE_BASE64 ? '新增圖片' : '替換圖片'}
+                    </label>
+                    <input type="file" id="file-upload-${player.id}" accept="image/*">
+                `;
+                
+                const fileInput = imageContainer.querySelector(`#file-upload-${player.id}`);
+                fileInput.addEventListener('change', (e) => {
+                    handleImageUpload(player.id, e.target.files[0]);
+                });
+
+                // 2. 玩家資訊
                 const info = document.createElement('div');
                 info.className = 'player-info';
                 info.innerHTML = `
                     <span>ID: ${String(player.id).padStart(3, '0')}</span>
-                    <span>${player.name}</span>
+                    <span style="font-size: 0.9em; color: #666;">${player.name}</span>
                 `;
 
-                // 狀態標籤
-                const statusTag = document.createElement('span');
+                // 3. 狀態標籤
+                const statusTag = document.createElement('div');
                 statusTag.className = 'status-tag ' + (player.alive ? 'alive-status' : 'eliminated-status');
                 statusTag.textContent = player.alive ? '生存中' : '已淘汰';
 
-                // 操作按鈕
+                // 4. 操作按鈕
                 const button = document.createElement('button');
                 button.className = 'action-button ' + (player.alive ? 'eliminate-btn' : 'revive-btn');
                 button.textContent = player.alive ? '淘汰' : '復活';
                 
-                // 點擊事件：調用 script.js 中的核心函數
                 button.addEventListener('click', () => {
                     togglePlayerStatus(player.id);
-                    // 點擊後重新渲染列表，保證控制端立即更新
                     renderControlPanel(getPlayersFromStorage()); 
                 });
 
+                item.appendChild(imageContainer);
                 item.appendChild(info);
                 item.appendChild(statusTag);
                 item.appendChild(button);
@@ -101,10 +122,9 @@
         }
 
         // 1. 初始化控制端列表
-        let initialPlayers = initializePlayers();
-        renderControlPanel(initialPlayers);
+        renderControlPanel(initializePlayers());
         
-        // 2. 監聽 storage 變化 (如果有其他控制端操作，這裡也會同步)
+        // 2. 監聽 storage 變化
         function syncControlPanel() {
             renderControlPanel(getPlayersFromStorage());
         }
