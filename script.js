@@ -1,30 +1,40 @@
-// script.js
+// script.js (重構版)
 
 const TOTAL_PLAYERS = 456;
 const STORAGE_KEY = 'squidGameStatus';
 
 /**
+ * 預設的空白 Base64 圖片 (這裡使用一個極小的透明圖作為佔位符)
+ * 實際部署時，建議用一張 1x1 像素的黑色 Base64 圖片來保持氛圍。
+ */
+const DEFAULT_IMAGE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NkYGBgAAAABQAEAGBAAYnE8AAAAABJRU5ErkJggg==';
+
+/**
  * 從 localStorage 載入玩家狀態，如果沒有則建立預設狀態 (全部生存)。
+ * 玩家 ID 會從 1 到 456。
  * @returns {Array<Object>} 玩家資料陣列
  */
 function initializePlayers() {
     const storedStatus = localStorage.getItem(STORAGE_KEY);
     if (storedStatus) {
-        return JSON.parse(storedStatus);
+        // 確保載入的資料結構包含 imageURL，如果沒有則補上預設值
+        const players = JSON.parse(storedStatus);
+        return players.map(p => ({
+            ...p,
+            imageURL: p.imageURL || DEFAULT_IMAGE_BASE64 
+        }));
     }
     
-    // 預設建立 456 個玩家，全部為 alive: true
     const players = [];
     for (let i = 1; i <= TOTAL_PLAYERS; i++) {
         players.push({
             id: i,
             name: `Player ${String(i).padStart(3, '0')}`,
             alive: true,
-            // 由於靜態網站無法存放大量圖片，這裡使用一個預設圖片路徑
-            imageURL: `images/player_default.jpg` 
+            // 初始使用空白圖片
+            imageURL: DEFAULT_IMAGE_BASE64
         });
     }
-    // 儲存初始狀態
     localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
     return players;
 }
@@ -34,19 +44,14 @@ function initializePlayers() {
  * @param {number} playerId - 玩家的 ID
  */
 function togglePlayerStatus(playerId) {
-    let players = getPlayersFromStorage(); // 使用 getPlayersFromStorage 確保拿到最新的狀態
+    let players = getPlayersFromStorage();
     const player = players.find(p => p.id === playerId);
     
     if (player) {
-        player.alive = !player.alive; // 切換狀態
+        player.alive = !player.alive;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
         
-        // 觸發一個自定義事件，讓所有打開的頁面（包括控制端和顯示端）可以立即更新
         window.dispatchEvent(new Event('storageUpdate'));
-        
-        // 為了跨瀏覽器同步，也要觸發原生的 storage 事件
-        const event = new Event('storage');
-        window.dispatchEvent(event);
     }
 }
 
@@ -56,7 +61,6 @@ function togglePlayerStatus(playerId) {
  */
 function getPlayersFromStorage() {
     const storedStatus = localStorage.getItem(STORAGE_KEY);
-    // 如果 localStorage 為空，則初始化
     return storedStatus ? JSON.parse(storedStatus) : initializePlayers(); 
 }
 
@@ -66,11 +70,11 @@ function getPlayersFromStorage() {
  */
 function getRecentlyEliminated() {
     const players = getPlayersFromStorage();
-    // 找到 ID 最大的且 alive: false 的玩家，模擬最近淘汰（這是一個簡化邏輯）
+    // 找到 ID 最大的且 alive: false 的玩家，模擬最近淘汰
     const eliminated = players
         .filter(p => !p.alive)
-        .sort((a, b) => b.id - a.id) // 按 ID 降序排列
-        .shift(); // 取出第一個
+        .sort((a, b) => b.id - a.id)
+        .shift();
         
     return eliminated || { id: '---', name: '全體生存' };
 }
