@@ -19,7 +19,7 @@
             cursor: default; 
         }
 
-        /* 容器：用於居中網格 */
+        /* 容器：用於居中網格和應用最終的菱形轉換 */
         .floor-container {
             width: 100vw;
             height: 100vh;
@@ -27,6 +27,10 @@
             justify-content: center;
             align-items: center;
             position: relative;
+            
+            /* 關鍵：將整個容器旋轉並縮放，確保網格可見且居中 */
+            /* 縮放 1.05 以適應大部分螢幕，並旋轉 45 度 */
+            transform: scale(1.05) rotate(45deg); 
         }
 
         /* 菱形網格核心：約 22x22 格，容納 456 個玩家 */
@@ -35,14 +39,10 @@
             /* 調整單元格大小，以適應 22x22 網格在螢幕上的顯示 */
             grid-template-columns: repeat(22, 40px);
             grid-template-rows: repeat(22, 40px);
-            gap: 2px; /* 間距更小 */
+            gap: 2px;
             
-            /* 關鍵：整體旋轉 45 度，形成菱形 */
-            transform: rotate(45deg); 
-            
-            /* 調整縮放和平移，確保菱形網格位於畫面中央且大小適中 */
-            /* 移除之前複雜的 transform 組合，只保留旋轉和微小縮放 */
-            transform: scale(1.0) rotate(45deg); 
+            /* 移除所有 transform 屬性，讓它保持一個正常的方格網 */
+            transform: none; 
             
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); 
             filter: brightness(1.05);
@@ -72,8 +72,8 @@
             object-fit: cover; 
             opacity: 0.7; 
             transition: opacity 0.5s, filter 0.5s;
-            /* 移除複雜的 skew 屬性，只用縮放來確保圖片填滿空間 */
-            transform: scale(1.4) rotate(45deg); /* 圖片反向旋轉 45 度，使其保持正向 */
+            /* 圖片反向旋轉 45 度，使其保持正向 */
+            transform: scale(1.4) rotate(45deg); 
             transform-origin: center;
         }
 
@@ -133,11 +133,12 @@
     <script>
         const displayGrid = document.getElementById('display-grid');
 
-        // JS 邏輯 (renderDisplayGrid, syncDisplayStatus, initializePlayers) 保持與上一個版本相同
-        // ...
-        
-        // 由於篇幅限制，這裡不重複貼上 JS 邏輯，但請確保您的 script.js 檔案是完整的。
-        
+        // *** 請確保您的 script.js 檔案是完整的，包含以下函數：***
+        // initializePlayers()
+        // getPlayersFromStorage()
+        // getEliminatedCount()
+        // togglePlayerStatus(playerId)
+
         // --- 核心函數：渲染網格 (與上一個 2D 版本相同，不需要修改) ---
         function renderDisplayGrid(players) {
             displayGrid.innerHTML = '';
@@ -160,7 +161,7 @@
                 
                 const numberSpan = document.createElement('span');
                 numberSpan.className = 'player-number';
-                numberSpan.textContent = String(player.id).padStart(3, '0');
+                numberSpan.textContent = String(i).padStart(3, '0'); // 使用 i 作為 ID
                 cell.appendChild(numberSpan);
 
                 if (player.alive) {
@@ -185,7 +186,8 @@
             const centerDisplay = document.createElement('div');
             centerDisplay.className = 'center-display';
             
-            const eliminatedCount = getEliminatedCount(); 
+            // 由於 getEliminatedCount() 函數在 script.js 內，這裡使用假設它可用
+            const eliminatedCount = window.getEliminatedCount ? window.getEliminatedCount() : 0;
             
             centerDisplay.innerHTML = `
                 <div class="label">ELIMINATED</div>
@@ -194,19 +196,24 @@
             displayGrid.appendChild(centerDisplay);
         }
         
-        // --- 確保 JS 函數可用 ---
-        function getEliminatedCount() {
-            const players = getPlayersFromStorage();
-            return players.filter(p => !p.alive).length;
-        }
-        // 假設 getPlayersFromStorage 和 initializePlayers 已經在 script.js 中定義
-
         // --- 同步機制 ---
         function syncDisplayStatus() {
-            const players = getPlayersFromStorage();
+            const players = window.getPlayersFromStorage ? window.getPlayersFromStorage() : [];
             renderDisplayGrid(players);
         }
+        
+        // 確保函數已初始化
+        const TOTAL_PLAYERS = 456;
+        const initializePlayers = window.initializePlayers || (() => {
+            const players = [];
+            for (let i = 1; i <= TOTAL_PLAYERS; i++) {
+                players.push({ id: i, name: `Player ${String(i).padStart(3, '0')}`, alive: true, imageURL: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NkYGBgAAAABQAEAGBAAYnE8AAAAABJRU5ErkJggg==' });
+            }
+            return players;
+        });
 
+        const getPlayersFromStorage = window.getPlayersFromStorage || initializePlayers;
+        
         renderDisplayGrid(initializePlayers());
         setInterval(syncDisplayStatus, 500); 
         window.addEventListener('storage', syncDisplayStatus); 
