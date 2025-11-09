@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>魷魚遊戲生存格 - 顯示端</title>
+    <title>魷魚遊戲生存格 - 顯示端 (2D)</title>
     <style>
         /* 基礎設置：深色空間與字體 */
         body {
-            background-color: #0d1216; 
+            background-color: #0d1216; /* 深色背景 */
             color: white;
             font-family: 'Arial', sans-serif;
             display: flex;
@@ -16,17 +16,13 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden; 
-            cursor: grab;
-        }
-        body:active {
-            cursor: grabbing;
+            /* 移除 3D 相關滑鼠游標 */
+            cursor: default; 
         }
 
-        /* 3D 視角容器：應用 Perspective */
+        /* 移除 3D 容器：直接在 body 中居中網格 */
         .floor-container {
-            perspective: 1200px; /* 合理的透視深度 */
-            /* 視點設置在中心上方，模擬從高處俯視 */
-            perspective-origin: center top; 
+            /* 移除 perspective 屬性 */
             width: 100vw;
             height: 100vh;
             display: flex;
@@ -42,38 +38,45 @@
             grid-template-rows: repeat(22, 50px);
             gap: 5px;
 
-            transform-style: preserve-3d;
-            /* 設置旋轉原點為中心，讓 rotateY 繞著平台中心旋轉 */
-            transform-origin: center center; 
+            /* 關鍵的 2D 轉換：只進行菱形旋轉和縮放 */
+            transform: scale(1.5) rotate(45deg); /* 放大 1.5 倍，旋轉 45 度成菱形 */
             
-            /* 初始視角：
-               translateZ: 適度推遠，讓網格位於畫面中央且大小適中
-               rotateX: 讓地板有一個清晰的傾斜角度 (從上方看下去)
-               rotateZ: 45度菱形旋轉
-            */
-            transform: translateZ(0) translateY(0) rotateX(65deg) rotateZ(45deg); 
-            transition: transform 0.05s linear;
-            
-            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); /* 增加平面陰影 */
             filter: brightness(1.05);
+            
+            /* 移除 3D 屬性 */
+            transform-style: none;
+            transition: none;
         }
 
-        /* -------------------- 格子與光效 CSS (保持不變) -------------------- */
+        /* 每個玩家的菱形單元格 */
         .player-cell {
             width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.9); 
-            border: 1px solid #101010; transform: scaleY(0.7); transition: all 0.5s ease;
+            border: 1px solid #101010; 
+            
+            /* 關鍵：將單元格反向旋轉，使內容保持水平 */
+            transform: scaleY(0.7) rotate(-45deg); 
+            
+            transition: all 0.5s ease;
             position: relative; overflow: hidden; border-radius: 5px; 
             box-shadow: 0 0 1px rgba(0, 255, 192, 0.05) inset, 0 0 1px rgba(0, 255, 192, 0.05); 
         }
 
+        /* 玩家圖片與編號 (保持不變) */
         .player-cell img {
             width: 100%; height: 100%; object-fit: cover; opacity: 0.7; transition: opacity 0.5s, filter 0.5s;
+            /* 圖片內容再旋轉 45 度，使其保持正向 */
+            transform: rotate(45deg) scale(1.4); 
+            transform-origin: center;
         }
+
         .player-cell .player-number {
             position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
             font-size: 10px; font-weight: bold; color: #00FFC0; 
             text-shadow: 0 0 2px #000000; z-index: 10;
         }
+        
+        /* 生存狀態 (保持不變) */
         .player-cell.alive {
             background-color: rgba(0, 255, 192, 0.1);
             box-shadow: 0 0 3px #00FFC0, 0 0 10px #00FFC0, 0 0 20px rgba(0, 255, 192, 0.5); 
@@ -83,26 +86,24 @@
         .player-cell:not(.alive) { box-shadow: none; border-color: #101010; }
         .player-cell:not(.alive) img { filter: grayscale(100%); opacity: 0.1; }
 
-        /* 中央淘汰板樣式 */
+        /* 中央淘汰板樣式 (位置調整到中間) */
         .center-display {
+            /* 讓淘汰顯示器在 45 度旋轉的網格中保持水平，並位於中間偏下的位置 */
+            transform: rotate(-45deg) scale(1.5) translate(0, 20px); 
+            
             grid-column: 19 / span 3; 
             grid-row: 20 / span 2; 
             background-color: #2c0000; border: 3px solid #ff0000;
-            z-index: 20; transform: scaleY(0.7); 
+            z-index: 20; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: #ff0000; font-size: 24px; text-shadow: 0 0 5px #ff0000;
         }
         .center-display .label { font-size: 12px; text-shadow: none; margin-bottom: 2px; }
 
-        /* 拖曳提示 */
+        /* 移除拖曳提示 */
         .drag-hint {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.7); color: #00FFC0;
-            padding: 8px 15px; border-radius: 5px; font-size: 14px;
-            opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; 
-            z-index: 100; border: 1px solid #00FFC0;
+            display: none;
         }
-        .drag-hint.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -110,25 +111,14 @@
     <div class="floor-container">
         <div class="floor-grid" id="display-grid">
             </div>
-        <div class="drag-hint" id="drag-hint">拖曳滑鼠左右移動視角</div>
-    </div>
+        </div>
 
     <script src="script.js"></script>
     <script>
         const displayGrid = document.getElementById('display-grid');
-        const floorContainer = document.querySelector('.floor-container');
-        const dragHint = document.getElementById('drag-hint');
+        // 由於是 2D，我們不需要 updateFloorTransform 函數
 
-        // 固定 X 軸旋轉：地板傾斜角度
-        const FIXED_ROTATE_X = 65; 
-        let currentRotateY = 0; // 左右環繞旋轉
-        let isDragging = false;
-        let lastX = 0;
-        const SENSITIVITY = 0.2; // 旋轉靈敏度
-
-        let hintTimeout;
-
-        // --- 核心函數：渲染網格 (不變) ---
+        // --- 核心函數：渲染網格 (與上一個 3D 版本相同，不需要修改) ---
         function renderDisplayGrid(players) {
             displayGrid.innerHTML = '';
             
@@ -186,49 +176,7 @@
             displayGrid.appendChild(centerDisplay);
         }
 
-        // --- 更新 3D 視角 (只允許 Y 軸旋轉) ---
-        
-        function updateFloorTransform() {
-            // 注意：這裡只應用 rotateX, rotateY, rotateZ。
-            // 所有的 translateZ/Y 已經在 CSS 初始 transform 中設置好。
-            const rotationTransform = `rotateX(${FIXED_ROTATE_X}deg) rotateY(${currentRotateY}deg) rotateZ(45deg)`;
-            
-            // 獲取 CSS 初始 transform 屬性 (包含 translateZ/Y)
-            const initialTransform = 'translateZ(-300px) translateY(100px)';
-
-            // 重新組合 transform 屬性，確保 rotateY 繞中心旋轉
-            displayGrid.style.transform = initialTransform + ' ' + rotationTransform;
-        }
-
-        // --- 滑鼠事件處理 (只允許 Y 軸旋轉) ---
-
-        floorContainer.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            lastX = e.clientX;
-            floorContainer.style.cursor = 'grabbing';
-            e.preventDefault();
-
-            dragHint.classList.remove('show');
-            clearTimeout(hintTimeout);
-        });
-
-        floorContainer.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-
-            const deltaX = e.clientX - lastX;
-            currentRotateY += deltaX * SENSITIVITY;
-            
-            updateFloorTransform();
-            lastX = e.clientX;
-        });
-
-        // 停止拖曳
-        ['mouseup', 'mouseleave'].forEach(event => {
-            floorContainer.addEventListener(event, () => {
-                isDragging = false;
-                floorContainer.style.cursor = 'grab';
-            });
-        });
+        // --- 移除所有 3D / 滑鼠控制邏輯 ---
 
         // --- 同步機制 ---
 
@@ -237,22 +185,14 @@
             renderDisplayGrid(players);
         }
 
-        // 1. 初始化顯示並設置初始視角
+        // 1. 初始化顯示
         renderDisplayGrid(initializePlayers());
-        updateFloorTransform();
 
         // 2. 輪詢機制
         setInterval(syncDisplayStatus, 500); 
         window.addEventListener('storage', syncDisplayStatus); 
         window.addEventListener('storageUpdate', syncDisplayStatus); 
 
-        // 顯示拖曳提示 (延遲顯示，防止一開始就出現)
-        setTimeout(() => {
-            dragHint.classList.add('show');
-            hintTimeout = setTimeout(() => {
-                dragHint.classList.remove('show');
-            }, 5000); // 5秒後自動消失
-        }, 2000); // 2秒後顯示
     </script>
 </body>
 </html>
