@@ -5,78 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>魷魚遊戲生存格 - 顯示端</title>
     <style>
-        /* CSS 樣式放在這裡，請看下一段 */
+        /* 基礎設置：深色空間與字體 */
         body {
-            background-color: #0d0d0d; /* 深色空間 */
+            background-color: #0a1818; /* 深墨綠色背景 */
             color: white;
+            font-family: 'Arial', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            overflow: hidden; /* 防止滾動條 */
+            overflow: hidden; 
         }
 
+        /* 3D 視角容器 */
         .floor-container {
-            /* 設置透視，模擬 3D 深度 */
-            perspective: 1200px; 
-            perspective-origin: center -200px;
+            perspective: 1500px; /* 增加透視深度 */
+            perspective-origin: center 150%; /* 視角更低 */
+            width: 100vw;
+            height: 100vh;
         }
 
+        /* 菱形網格核心 */
         .floor-grid {
             display: grid;
-            /* 設置網格大小，這裡用 4x4 */
-            grid-template-columns: repeat(4, 150px); 
-            grid-template-rows: repeat(4, 150px);
-            gap: 20px;
+            /* 10x10 網格，用於顯示 100 名玩家 */
+            grid-template-columns: repeat(10, 100px); 
+            grid-template-rows: repeat(10, 100px);
+            gap: 10px;
 
             /* 關鍵的 3D 轉換 */
             transform-style: preserve-3d;
-            transform: rotateX(65deg) rotateZ(45deg); /* 傾斜與旋轉為菱形網格 */
+            /* 調整 Y 軸使地板更接近底部，並進行傾斜和旋轉 */
+            transform: translateZ(-500px) translateY(150px) rotateX(65deg) rotateZ(45deg); 
             
-            /* 稍微將網格推遠，以達到深邃感 */
-            transform: translateZ(-300px) rotateX(65deg) rotateZ(45deg); 
-            
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8); /* 網格周圍的微弱陰影 */
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8); /* 讓地板中心更暗 */
         }
 
+        /* 每個玩家的菱形單元格 */
         .player-cell {
-            width: 150px;
-            height: 150px;
-            background-color: rgba(20, 20, 20, 0.8); /* 熄滅時的深灰色地板 */
-            border: 1px solid #333;
+            width: 100px;
+            height: 100px;
+            background-color: rgba(0, 0, 0, 0.9); 
+            border: 1px solid #1f3a3a; /* 深青色邊框 */
             
-            /* 3D 視覺優化 */
-            transform: scaleY(0.7); /* 壓縮以增加菱形的立體感 */
+            /* 壓縮 Y 軸以增加菱形的立體感 */
+            transform: scaleY(0.7); 
             transition: all 0.5s ease;
-            cursor: pointer; /* 雖然是顯示端，但可以作為視覺回饋 */
 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: #444; /* 熄滅時的 ID 顏色 */
+            position: relative; 
+            overflow: hidden;
         }
 
-        /* 生存狀態：持續亮起 */
+        /* 玩家圖片與編號 */
+        .player-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.5; /* 圖片半透明 */
+            transition: opacity 0.5s, filter 0.5s;
+        }
+
+        .player-cell .player-number {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: 0 0 5px black;
+            z-index: 10;
+        }
+
+        /* 生存狀態：持續亮起（青綠色光效）*/
         .player-cell.alive {
-            background-color: rgba(0, 255, 0, 0.1);
+            background-color: rgba(0, 255, 192, 0.1);
             color: #ccffcc;
-            /* 綠色發光效果：多層 box-shadow 營造光暈 */
             box-shadow: 
-                0 0 5px #0f0,  /* 核心光 */
-                0 0 15px #0f0, /* 光暈 */
-                0 0 30px #0f0; /* 更大的光暈 */
-            border-color: #0f0;
+                0 0 5px #00FFC0,  /* 核心光 */
+                0 0 15px #00FFC0, /* 光暈 */
+                0 0 30px #00FFC0; /* 更大的光暈 */
+            border-color: #00FFC0;
         }
 
         /* 淘汰狀態：熄滅 */
-        .player-cell:not(.alive) {
-            box-shadow: none;
-            border-color: #333;
+        .player-cell:not(.alive) img {
+            filter: grayscale(100%); /* 圖片變黑白 */
+            opacity: 0.2; /* 圖片更暗 */
         }
 
+        /* 中央淘汰板樣式 (佔據 5x5 的中心位置) */
+        .center-display {
+            grid-column: 4 / span 4; /* 佔據第 4 到 第 7 欄 */
+            grid-row: 4 / span 4; /* 佔據第 4 到 第 7 列 */
+            background-color: #2c0000; 
+            border: 3px solid #ff0000;
+            z-index: 20;
+            
+            /* 保持與格子相同的菱形變換 */
+            transform: scaleY(0.7); 
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ff0000;
+            font-size: 36px;
+            text-shadow: 0 0 10px #ff0000;
+        }
+        .center-display .label {
+             font-size: 16px;
+             text-shadow: none;
+             margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -96,12 +138,26 @@
         function renderDisplayGrid(players) {
             displayGrid.innerHTML = ''; // 清空現有格子
             
-            players.forEach(player => {
+            // 為了視覺效果，只顯示前 100 個玩家 (10x10)
+            const displayPlayers = players.slice(0, 100); 
+
+            displayPlayers.forEach(player => {
                 const cell = document.createElement('div');
                 cell.className = 'player-cell';
                 cell.setAttribute('data-player-id', player.id);
-                cell.textContent = String(player.id).padStart(3, '0'); // 顯示玩家編號
                 
+                // 1. 玩家圖片
+                const img = document.createElement('img');
+                img.src = player.imageURL;
+                img.alt = player.name;
+                cell.appendChild(img);
+                
+                // 2. 玩家編號
+                const numberSpan = document.createElement('span');
+                numberSpan.className = 'player-number';
+                numberSpan.textContent = String(player.id).padStart(3, '0');
+                cell.appendChild(numberSpan);
+
                 if (player.alive) {
                     cell.classList.add('alive');
                 } else {
@@ -110,23 +166,33 @@
                 
                 displayGrid.appendChild(cell);
             });
+            
+            // 3. 中央淘汰顯示板
+            const centerDisplay = document.createElement('div');
+            centerDisplay.className = 'center-display';
+            const eliminatedPlayer = getRecentlyEliminated();
+            
+            centerDisplay.innerHTML = `
+                <div class="label">LAST ELIMINATED</div>
+                <div>${String(eliminatedPlayer.id).padStart(3, '0')}</div>
+            `;
+            displayGrid.appendChild(centerDisplay);
         }
 
         // 1. 初始化顯示
         renderDisplayGrid(initializePlayers());
 
-        // 2. 輪詢機制：每秒檢查 localStorage 以同步狀態
+        // 2. 輪詢機制：每 500 毫秒檢查 localStorage 以同步狀態
         function syncDisplayStatus() {
             const players = getPlayersFromStorage();
             renderDisplayGrid(players);
         }
 
-        // 設置輪詢間隔 (例如：每 500 毫秒)
         setInterval(syncDisplayStatus, 500); 
 
-        // 額外：如果控制端在同一個頁籤，可以監聽 storage 事件
+        // 監聽 storage 變化 (如果控制端在同一域名的不同分頁)
         window.addEventListener('storage', syncDisplayStatus); 
-        window.addEventListener('storageUpdate', syncDisplayStatus); // 監聽自定義事件
+        window.addEventListener('storageUpdate', syncDisplayStatus); 
 
     </script>
 </body>
