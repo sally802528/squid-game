@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魷魚遊戲生存格 - 控制端</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        h1 { color: #2c3e50; }
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .player-info span { margin-right: 15px; font-weight: bold; }
+        .status-tag {
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        .alive-status { background-color: #4CAF50; color: white; }
+        .eliminated-status { background-color: #f44336; color: white; }
+        .action-button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .eliminate-btn { background-color: #f44336; }
+        .eliminate-btn:hover { background-color: #d32f2f; }
+        .revive-btn { background-color: #4CAF50; }
+        .revive-btn:hover { background-color: #388e3c; }
+    </style>
+</head>
+<body>
+    <h1>控制中心 - 玩家淘汰管理</h1>
+    <div id="control-panel">
+        </div>
+
+    <script src="script.js"></script>
+    <script>
+        // control.html 專屬邏輯
+
+        const controlPanel = document.getElementById('control-panel');
+
+        // 函數：渲染控制端列表
+        function renderControlPanel(players) {
+            controlPanel.innerHTML = '';
+            
+            players.forEach(player => {
+                const item = document.createElement('div');
+                item.className = 'player-item';
+                
+                // 玩家資訊
+                const info = document.createElement('div');
+                info.className = 'player-info';
+                info.innerHTML = `
+                    <span>ID: ${String(player.id).padStart(3, '0')}</span>
+                    <span>${player.name}</span>
+                `;
+
+                // 狀態標籤
+                const statusTag = document.createElement('span');
+                statusTag.className = 'status-tag ' + (player.alive ? 'alive-status' : 'eliminated-status');
+                statusTag.textContent = player.alive ? '生存中' : '已淘汰';
+
+                // 操作按鈕
+                const button = document.createElement('button');
+                button.className = 'action-button ' + (player.alive ? 'eliminate-btn' : 'revive-btn');
+                button.textContent = player.alive ? '淘汰' : '復活';
+                
+                // 點擊事件：調用 script.js 中的核心函數
+                button.addEventListener('click', () => {
+                    togglePlayerStatus(player.id);
+                    // 點擊後重新渲染列表，保證控制端立即更新
+                    renderControlPanel(getPlayersFromStorage()); 
+                });
+
+                item.appendChild(info);
+                item.appendChild(statusTag);
+                item.appendChild(button);
+                controlPanel.appendChild(item);
+            });
+        }
+
+        // 1. 初始化控制端列表
+        let initialPlayers = initializePlayers();
+        renderControlPanel(initialPlayers);
+        
+        // 2. 監聽 storage 變化 (如果有其他控制端操作，這裡也會同步)
+        function syncControlPanel() {
+            renderControlPanel(getPlayersFromStorage());
+        }
+        window.addEventListener('storage', syncControlPanel);
+        window.addEventListener('storageUpdate', syncControlPanel);
+        
+    </script>
+</body>
+</html>
