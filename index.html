@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>魷魚遊戲生存格 - 顯示端 (2D)</title>
+    <title>魷魚遊戲生存格 - 顯示端 (最終平面版)</title>
     <style>
         /* 基礎設置：深色空間與字體 */
         body {
@@ -32,58 +32,63 @@
         /* 菱形網格核心：約 22x22 格，容納 456 個玩家 */
         .floor-grid {
             display: grid;
-            grid-template-columns: repeat(22, 50px);
-            grid-template-rows: repeat(22, 50px);
-            gap: 5px;
-
-            /* 關鍵的 2D 轉換：將網格旋轉成菱形 */
-            /* 調整縮放比例到 1.2，避免在小螢幕上超出視窗 */
-            transform: scale(1.2) rotate(45deg); 
+            /* 調整單元格大小，以適應 22x22 網格在螢幕上的顯示 */
+            grid-template-columns: repeat(22, 40px);
+            grid-template-rows: repeat(22, 40px);
+            gap: 2px; /* 間距更小 */
+            
+            /* 關鍵：整體旋轉 45 度，形成菱形 */
+            transform: rotate(45deg); 
+            
+            /* 調整縮放和平移，確保菱形網格位於畫面中央且大小適中 */
+            /* 移除之前複雜的 transform 組合，只保留旋轉和微小縮放 */
+            transform: scale(1.0) rotate(45deg); 
             
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); 
             filter: brightness(1.05);
         }
 
-        /* 每個玩家的菱形單元格 */
+        /* 每個玩家的單元格 */
         .player-cell {
-            width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.9); 
+            width: 40px; 
+            height: 40px; 
+            background-color: rgba(0, 0, 0, 0.9); 
             border: 1px solid #101010; 
             
-            /* 修正：反向旋轉抵消，讓內容保持水平 */
-            /* 由於整個網格已被 rotate(45deg) 旋轉，這裡必須 rotate(-45deg) 抵消 */
-            /* 保持 scaleY(0.7) 來營造菱形錯覺，但這可能導致高度不足，我們將調整它 */
-            
-            /* 簡化處理：使用 skew 創造菱形視覺，避免複雜的旋轉嵌套 */
-            transform: skew(15deg, 15deg) scaleY(0.7); 
+            /* 關鍵：反向旋轉，使單元格內容保持水平 */
+            transform: rotate(-45deg); 
             
             transition: all 0.5s ease;
-            position: relative; overflow: hidden; border-radius: 5px; 
+            position: relative; 
+            overflow: hidden; 
+            border-radius: 5px; 
             box-shadow: 0 0 1px rgba(0, 255, 192, 0.05) inset, 0 0 1px rgba(0, 255, 192, 0.05); 
         }
-        
-        /* 由於 .player-cell 採用了 skew 轉換，其內容 (圖片和文字) 必須反向 skew */
-        .player-cell > * {
-            /* 對內容進行反向 skew 抵消 */
-            transform: skew(-15deg, -15deg) scaleY(1.4); 
-            transform-origin: center;
-        }
-        
-        /* 玩家圖片與編號 (繼承了上方的通用內容修正) */
+
+        /* 玩家圖片與編號 */
         .player-cell img {
-            width: 100%; height: 100%; object-fit: cover; opacity: 0.7; transition: opacity 0.5s, filter 0.5s;
-            /* 圖片內容再放大一點，以填滿單元格 */
-            transform: skew(-15deg, -15deg) scale(1.4); 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            opacity: 0.7; 
+            transition: opacity 0.5s, filter 0.5s;
+            /* 移除複雜的 skew 屬性，只用縮放來確保圖片填滿空間 */
+            transform: scale(1.4) rotate(45deg); /* 圖片反向旋轉 45 度，使其保持正向 */
             transform-origin: center;
         }
-        
-        /* 修正：player-number 的定位 */
+
         .player-cell .player-number {
-            /* 號碼不需要額外旋轉，只需要繼承通用內容的反向 skew 即可保持水平 */
-            position: absolute; bottom: 5px; left: 50%; 
-            /* 僅應用必要的 skew 抵消和縮放修正 */
-            transform: skew(-15deg, -15deg) scaleY(1.4) translateX(-50%);
-            font-size: 10px; font-weight: bold; color: #00FFC0; 
-            text-shadow: 0 0 2px #000000; z-index: 10;
+            position: absolute; 
+            bottom: 2px; 
+            left: 50%; 
+            /* 關鍵：反向旋轉抵消，使其保持水平 */
+            transform: translateX(-50%) rotate(45deg);
+            
+            font-size: 10px; 
+            font-weight: bold; 
+            color: #00FFC0; 
+            text-shadow: 0 0 2px #000000; 
+            z-index: 10;
         }
 
         /* 生存狀態 (保持不變) */
@@ -100,13 +105,14 @@
         .center-display {
             grid-column: 19 / span 3; 
             grid-row: 20 / span 2; 
-            background-color: #2c0000; border: 3px solid #ff0000;
+            background-color: #2c0000; 
+            border: 3px solid #ff0000;
             z-index: 20; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: #ff0000; font-size: 24px; text-shadow: 0 0 5px #ff0000;
             
-            /* 修正：僅進行反向旋轉抵消，使其保持水平，並略微向上移動 */
-            transform: rotate(-45deg) translate(0, -10px); 
+            /* 關鍵：反向旋轉抵消，使其保持水平 */
+            transform: rotate(-45deg); 
         }
         .center-display .label { font-size: 12px; text-shadow: none; margin-bottom: 2px; }
 
@@ -125,9 +131,14 @@
 
     <script src="script.js"></script>
     <script>
-        // ... (JS 邏輯與上一版本相同，這裡省略以保持簡潔) ...
         const displayGrid = document.getElementById('display-grid');
 
+        // JS 邏輯 (renderDisplayGrid, syncDisplayStatus, initializePlayers) 保持與上一個版本相同
+        // ...
+        
+        // 由於篇幅限制，這裡不重複貼上 JS 邏輯，但請確保您的 script.js 檔案是完整的。
+        
+        // --- 核心函數：渲染網格 (與上一個 2D 版本相同，不需要修改) ---
         function renderDisplayGrid(players) {
             displayGrid.innerHTML = '';
             
@@ -182,19 +193,25 @@
             `;
             displayGrid.appendChild(centerDisplay);
         }
+        
+        // --- 確保 JS 函數可用 ---
+        function getEliminatedCount() {
+            const players = getPlayersFromStorage();
+            return players.filter(p => !p.alive).length;
+        }
+        // 假設 getPlayersFromStorage 和 initializePlayers 已經在 script.js 中定義
 
+        // --- 同步機制 ---
         function syncDisplayStatus() {
             const players = getPlayersFromStorage();
             renderDisplayGrid(players);
         }
 
         renderDisplayGrid(initializePlayers());
-
         setInterval(syncDisplayStatus, 500); 
         window.addEventListener('storage', syncDisplayStatus); 
         window.addEventListener('storageUpdate', syncDisplayStatus); 
         
-        // 由於我們移除了 3D 函數，這裡不需要呼叫 updateFloorTransform()
     </script>
 </body>
 </html>
