@@ -11,6 +11,11 @@
             padding: 20px;
         }
         h1 { color: #2c3e50; }
+        .player-list-container {
+            max-height: 80vh;
+            overflow-y: auto;
+            padding-right: 15px;
+        }
         .player-item {
             display: flex;
             justify-content: space-between;
@@ -45,8 +50,8 @@
     </style>
 </head>
 <body>
-    <h1>控制中心 - 玩家淘汰管理</h1>
-    <div id="control-panel">
+    <h1>控制中心 - 玩家淘汰管理 (共 456 名)</h1>
+    <div class="player-list-container" id="control-panel">
         </div>
 
     <script src="script.js"></script>
