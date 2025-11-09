@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>魷魚遊戲生存格 - 顯示端 (最終平面版)</title>
+    <title>魷魚遊戲生存格 - 顯示端 (穩定 3D)</title>
     <style>
         /* 基礎設置：深色空間與字體 */
         body {
@@ -16,82 +16,76 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden; 
-            cursor: default; 
+            cursor: grab; /* 提示用戶可以拖曳 */
+        }
+        body:active {
+            cursor: grabbing;
         }
 
-        /* 容器：用於居中網格和應用最終的菱形轉換 */
+        /* 3D 視角容器：應用 Perspective */
         .floor-container {
+            perspective: 1500px; /* 適度的透視深度 */
+            perspective-origin: center 40%; /* 視點在中心偏上，模擬俯視 */
             width: 100vw;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
-            
-            /* 關鍵：將整個容器旋轉並縮放，確保網格可見且居中 */
-            /* 縮放 1.05 以適應大部分螢幕，並旋轉 45 度 */
-            transform: scale(1.05) rotate(45deg); 
         }
 
         /* 菱形網格核心：約 22x22 格，容納 456 個玩家 */
         .floor-grid {
             display: grid;
-            /* 調整單元格大小，以適應 22x22 網格在螢幕上的顯示 */
-            grid-template-columns: repeat(22, 40px);
-            grid-template-rows: repeat(22, 40px);
-            gap: 2px;
+            grid-template-columns: repeat(22, 45px); /* 調整單元格尺寸 */
+            grid-template-rows: repeat(22, 45px);
+            gap: 4px;
+
+            transform-style: preserve-3d;
+            transform-origin: center center; 
             
-            /* 移除所有 transform 屬性，讓它保持一個正常的方格網 */
-            transform: none; 
+            /* 初始視角：
+               translateZ: 適度推遠
+               rotateX: 俯視角度，既有深度感又清晰
+               rotateZ: 45度菱形旋轉
+            */
+            transform: translateZ(-500px) translateY(50px) rotateX(65deg) rotateZ(45deg); 
+            transition: transform 0.05s linear;
             
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); 
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9); 
             filter: brightness(1.05);
         }
 
-        /* 每個玩家的單元格 */
+        /* 每個玩家的菱形單元格 */
         .player-cell {
-            width: 40px; 
-            height: 40px; 
+            width: 45px; height: 45px; 
             background-color: rgba(0, 0, 0, 0.9); 
             border: 1px solid #101010; 
             
-            /* 關鍵：反向旋轉，使單元格內容保持水平 */
-            transform: rotate(-45deg); 
+            /* 恢復 3D 錯覺所需的壓縮 */
+            transform: scaleY(0.7); 
             
             transition: all 0.5s ease;
-            position: relative; 
-            overflow: hidden; 
-            border-radius: 5px; 
+            position: relative; overflow: hidden; border-radius: 5px; 
             box-shadow: 0 0 1px rgba(0, 255, 192, 0.05) inset, 0 0 1px rgba(0, 255, 192, 0.05); 
         }
 
         /* 玩家圖片與編號 */
         .player-cell img {
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
+            width: 100%; height: 100%; object-fit: cover; 
             opacity: 0.7; 
             transition: opacity 0.5s, filter 0.5s;
-            /* 圖片反向旋轉 45 度，使其保持正向 */
-            transform: scale(1.4) rotate(45deg); 
-            transform-origin: center;
         }
 
         .player-cell .player-number {
-            position: absolute; 
-            bottom: 2px; 
-            left: 50%; 
-            /* 關鍵：反向旋轉抵消，使其保持水平 */
-            transform: translateX(-50%) rotate(45deg);
+            position: absolute; bottom: 2px; left: 50%; 
+            transform: translateX(-50%); /* 移除旋轉，讓它保持在 3D 空間中的平面 */
             
-            font-size: 10px; 
-            font-weight: bold; 
-            color: #00FFC0; 
-            text-shadow: 0 0 2px #000000; 
-            z-index: 10;
+            font-size: 10px; font-weight: bold; color: #00FFC0; 
+            text-shadow: 0 0 2px #000000; z-index: 10;
         }
 
-        /* 生存狀態 (保持不變) */
+        /* 生存/淘汰狀態 (保持不變) */
         .player-cell.alive {
             background-color: rgba(0, 255, 192, 0.1);
             box-shadow: 0 0 3px #00FFC0, 0 0 10px #00FFC0, 0 0 20px rgba(0, 255, 192, 0.5); 
@@ -105,21 +99,25 @@
         .center-display {
             grid-column: 19 / span 3; 
             grid-row: 20 / span 2; 
-            background-color: #2c0000; 
-            border: 3px solid #ff0000;
+            background-color: #2c0000; border: 3px solid #ff0000;
             z-index: 20; 
+            /* 恢復 3D 壓縮 */
+            transform: scaleY(0.7); 
+            
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: #ff0000; font-size: 24px; text-shadow: 0 0 5px #ff0000;
-            
-            /* 關鍵：反向旋轉抵消，使其保持水平 */
-            transform: rotate(-45deg); 
         }
         .center-display .label { font-size: 12px; text-shadow: none; margin-bottom: 2px; }
 
-        /* 移除拖曳提示 */
+        /* 拖曳提示 (恢復) */
         .drag-hint {
-            display: none;
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7); color: #00FFC0;
+            padding: 8px 15px; border-radius: 5px; font-size: 14px;
+            opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; 
+            z-index: 100; border: 1px solid #00FFC0;
         }
+        .drag-hint.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -127,19 +125,28 @@
     <div class="floor-container">
         <div class="floor-grid" id="display-grid">
             </div>
+        <div class="drag-hint" id="drag-hint">拖曳滑鼠左右移動視角</div>
     </div>
 
     <script src="script.js"></script>
     <script>
         const displayGrid = document.getElementById('display-grid');
+        const floorContainer = document.querySelector('.floor-container');
+        const dragHint = document.getElementById('drag-hint');
 
-        // *** 請確保您的 script.js 檔案是完整的，包含以下函數：***
-        // initializePlayers()
-        // getPlayersFromStorage()
-        // getEliminatedCount()
-        // togglePlayerStatus(playerId)
+        // 固定 X 軸旋轉：地板傾斜角度
+        const FIXED_ROTATE_X = 65; 
+        let currentRotateY = 0; // 左右環繞旋轉
+        let isDragging = false;
+        let lastX = 0;
+        const SENSITIVITY = 0.2; // 旋轉靈敏度
 
-        // --- 核心函數：渲染網格 (與上一個 2D 版本相同，不需要修改) ---
+        let hintTimeout;
+
+        // --- 核心函數：渲染網格 (確保可用) ---
+        // (這裡省略 renderDisplayGrid 的完整內容，假設它與您的 script.js 協同運作)
+        // ... (renderDisplayGrid 函數體) ...
+
         function renderDisplayGrid(players) {
             displayGrid.innerHTML = '';
             
@@ -161,7 +168,7 @@
                 
                 const numberSpan = document.createElement('span');
                 numberSpan.className = 'player-number';
-                numberSpan.textContent = String(i).padStart(3, '0'); // 使用 i 作為 ID
+                numberSpan.textContent = String(i).padStart(3, '0');
                 cell.appendChild(numberSpan);
 
                 if (player.alive) {
@@ -186,7 +193,6 @@
             const centerDisplay = document.createElement('div');
             centerDisplay.className = 'center-display';
             
-            // 由於 getEliminatedCount() 函數在 script.js 內，這裡使用假設它可用
             const eliminatedCount = window.getEliminatedCount ? window.getEliminatedCount() : 0;
             
             centerDisplay.innerHTML = `
@@ -195,14 +201,55 @@
             `;
             displayGrid.appendChild(centerDisplay);
         }
+
+        // --- 更新 3D 視角 (只允許 Y 軸旋轉) ---
         
+        function updateFloorTransform() {
+            // 獲取 CSS 初始 transform 屬性 (包含 translateZ/Y, rotateX/Z)
+            const baseTransform = 'translateZ(-500px) translateY(50px) rotateX(65deg) rotateZ(45deg)';
+            
+            // 加入 Y 軸旋轉
+            const rotationTransform = `rotateY(${currentRotateY}deg)`;
+            
+            displayGrid.style.transform = baseTransform + ' ' + rotationTransform;
+        }
+
+        // --- 滑鼠事件處理 (只允許 Y 軸旋轉) ---
+
+        floorContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastX = e.clientX;
+            floorContainer.style.cursor = 'grabbing';
+            e.preventDefault();
+
+            dragHint.classList.remove('show');
+            clearTimeout(hintTimeout);
+        });
+
+        floorContainer.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - lastX;
+            currentRotateY += deltaX * SENSITIVITY;
+            
+            updateFloorTransform();
+            lastX = e.clientX;
+        });
+
+        // 停止拖曳
+        ['mouseup', 'mouseleave'].forEach(event => {
+            floorContainer.addEventListener(event, () => {
+                isDragging = false;
+                floorContainer.style.cursor = 'grab';
+            });
+        });
+
         // --- 同步機制 ---
         function syncDisplayStatus() {
             const players = window.getPlayersFromStorage ? window.getPlayersFromStorage() : [];
             renderDisplayGrid(players);
         }
-        
-        // 確保函數已初始化
+
         const TOTAL_PLAYERS = 456;
         const initializePlayers = window.initializePlayers || (() => {
             const players = [];
@@ -211,14 +258,21 @@
             }
             return players;
         });
-
-        const getPlayersFromStorage = window.getPlayersFromStorage || initializePlayers;
         
         renderDisplayGrid(initializePlayers());
+        updateFloorTransform(); // 設置初始視角
+
         setInterval(syncDisplayStatus, 500); 
         window.addEventListener('storage', syncDisplayStatus); 
         window.addEventListener('storageUpdate', syncDisplayStatus); 
-        
+
+        // 顯示拖曳提示
+        setTimeout(() => {
+            dragHint.classList.add('show');
+            hintTimeout = setTimeout(() => {
+                dragHint.classList.remove('show');
+            }, 5000); 
+        }, 2000);
     </script>
 </body>
 </html>
