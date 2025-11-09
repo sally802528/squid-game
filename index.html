@@ -24,9 +24,9 @@
 
         /* 3D 視角容器：應用 Perspective */
         .floor-container {
-            perspective: 4000px; /* 更大的透視深度，模擬更廣闊的空間 */
-            /* 視角設置在畫布底部更下方，營造極低的觀察點，幾乎貼地 */
-            perspective-origin: center 180%; 
+            perspective: 1200px; /* 調整為更合理的透視深度，避免過度變形 */
+            /* 視點設置在中心略微偏上，以俯視地板 */
+            perspective-origin: center 25%; 
             width: 100vw;
             height: 100vh;
             display: flex;
@@ -44,16 +44,16 @@
 
             transform-style: preserve-3d;
             /* 初始視角：
-               translateZ: 推遠，讓地板看起來更深
-               translateY: 讓地板中心向下移，配合低視角
-               rotateX: 更平緩的傾斜角度，幾乎接近水平，但仍有立體感
+               translateZ: 適度推遠，讓網格位於畫面中央且大小適中
+               translateY: 讓網格中心向下移一些，以便在視角上看起來更遠
+               rotateX: 讓地板有一個清晰的傾斜角度，能看到立體感和遠處的格子
                rotateZ: 45度菱形旋轉
             */
-            transform: translateZ(-1500px) translateY(300px) rotateX(88deg) rotateZ(45deg); 
+            transform: translateZ(-300px) translateY(100px) rotateX(60deg) rotateZ(45deg); 
             transition: transform 0.05s linear; /* 更快的過渡 */
             
-            box-shadow: inset 0 0 300px rgba(0, 0, 0, 0.98); /* 讓地板中心更暗，僅邊緣有光 */
-            filter: brightness(1.2); /* 略微提高整體亮度以匹配圖片中微弱的反光 */
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9); /* 適度黑暗化地板中心 */
+            filter: brightness(1.05); /* 略微提高整體亮度 */
         }
 
         /* 每個玩家的菱形單元格 */
@@ -63,13 +63,12 @@
             background-color: rgba(0, 0, 0, 0.9); 
             border: 1px solid #101010; 
             
-            transform: scaleY(0.7); 
+            transform: scaleY(0.7); /* 壓縮以增加菱形的立體感 */
             transition: all 0.5s ease;
 
             position: relative; 
             overflow: hidden;
             border-radius: 5px; 
-            /* 輕微的發光效果，即使是熄滅的格子也有微妙的邊緣光 */
             box-shadow: 0 0 1px rgba(0, 255, 192, 0.05) inset, 0 0 1px rgba(0, 255, 192, 0.05); 
         }
 
@@ -142,7 +141,7 @@
             font-size: 14px;
             opacity: 0;
             transition: opacity 0.5s ease-out;
-            pointer-events: none; /* 不影響滑鼠事件 */
+            pointer-events: none; 
             z-index: 100;
             border: 1px solid #00FFC0;
         }
@@ -166,15 +165,16 @@
         const dragHint = document.getElementById('drag-hint');
 
         // 固定 X 軸旋轉，只允許 Y 軸旋轉
-        const FIXED_ROTATE_X = 88; // 更平緩的傾斜角度，更接近水平
+        // 修正後的 X 軸角度，讓地板傾斜可見
+        const FIXED_ROTATE_X = 60; 
         let currentRotateY = 0; // 左右旋轉
         let isDragging = false;
         let lastX = 0;
-        const SENSITIVITY = 0.2; // 調整旋轉靈敏度
+        const SENSITIVITY = 0.2; // 旋轉靈敏度
 
         let hintTimeout;
 
-        // --- 核心函數：渲染網格 (修正排列，讓小號碼在中間) ---
+        // --- 核心函數：渲染網格 ---
 
         function renderDisplayGrid(players) {
             displayGrid.innerHTML = '';
@@ -236,8 +236,8 @@
         // --- 更新 3D 視角 (只允許 Y 軸旋轉) ---
         
         function updateFloorTransform() {
-            // 保持初始的 Z 軸位移、 Y 軸位移 和 Z 軸旋轉 (45度菱形)
-            const baseTransform = 'translateZ(-1500px) translateY(300px)';
+            // 修正後的 Z 軸位移和 Y 軸位移，使網格在畫面中居中且可見
+            const baseTransform = 'translateZ(-300px) translateY(100px)';
             const rotationTransform = `rotateX(${FIXED_ROTATE_X}deg) rotateY(${currentRotateY}deg) rotateZ(45deg)`;
             
             displayGrid.style.transform = baseTransform + ' ' + rotationTransform;
@@ -251,7 +251,6 @@
             floorContainer.style.cursor = 'grabbing';
             e.preventDefault();
 
-            // 隱藏提示
             dragHint.classList.remove('show');
             clearTimeout(hintTimeout);
         });
